@@ -512,7 +512,7 @@ struct drm_prime_handle {
 };
 ]]
 
---#include <drm/drm_mode.h>
+local drm_mode = require("drm_mode")
 
 --[[
 	DRM_IOCTL_BASE			'd'
