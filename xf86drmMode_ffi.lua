@@ -331,13 +331,30 @@ local Constants = {
   DRM_PLANE_TYPE_PRIMARY =1;
   DRM_PLANE_TYPE_CURSOR  =2;
 
+}
+
+local Macros = {
   -- local functions/macros
-  drm_property_type_is = drm_property_type_is;
+  drm_property_type_is = drm_property_type_is;  
 }
 
 local exports = {
   Constants = Constants;
-
+  Macros = Macros;
 }
+
+setmetatable(exports, {
+  __call = function(self, ...)
+    for k,v in pairs(self.Constants) do
+      _G[k] = v;
+    end
+
+    for k,v in pairs(self.Macros) do
+      _G[k] = v;
+    end
+
+    return self;
+  end,
+})
 
 return exports

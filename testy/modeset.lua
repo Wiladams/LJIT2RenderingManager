@@ -12,51 +12,74 @@ package.path = package.path..";../?.lua"
  */
 --]]
 
---[[
-/*
- * DRM Modesetting Howto
- * This document describes the DRM modesetting API. Before we can use the DRM
- * API, we have to include xf86drm.h and xf86drmMode.h. Both are provided by
- * libdrm which every major distribution ships by default. It has no other
- * dependencies and is pretty small.
- *
- * Please ignore all forward-declarations of functions which are used later. I
- * reordered the functions so you can read this document from top to bottom. If
- * you reimplement it, you would probably reorder the functions to avoid all the
- * nasty forward declarations.
- *
- * For easier reading, we ignore all memory-allocation errors of malloc() and
- * friends here. However, we try to correctly handle all other kinds of errors
- * that may occur.
- *
- * All functions and global variables are prefixed with "modeset_*" in this
- * file. So it should be clear whether a function is a local helper or if it is
- * provided by some external library.
- */
---]]
+local ffi = require("ffi")
+local bit = require("bit")
+local bor = bit.bor
+local band = bit.band
 
 local xf86drm = require("xf86drm_ffi")()
 local xf86drmMode = require("xf86drmMode_ffi")()
 local utils = require("test_utils")()
 
+--  RenderCard represents a single graphics
+-- card within a system
+local RenderCard = {}
+setmetatable(RenderCard, {
+	__call = function(self, ...)
+		return self:new(...);
+	end,
+})
 
-local function modeset_open(const char *node)
 
-	int fd, ret;
-	uint64_t has_dumb;
+local RenderCard_mt = {
+	__index = RenderCard;
+}
 
-	fd = open(node, O_RDWR | O_CLOEXEC);
+function RenderCard.init(fd)
+	local obj = {
+		Handle = fd;
+	}
+	setmetatable(obj, RenderCard_mt);
+
+	return obj;
+end
+
+function RenderCard.new(self, nodename)
+	local fd = open(nodename, bor(O_RDWR, O_CLOEXEC));
 	if (fd < 0) then
-		ret = -errno;
-		fprintf(io.stderr, "cannot open '%s': %m\n", node);
+		return false, strerror(ffi.errno());
+	end
 
+	return self:init(fd);
+end
+
+function RenderCard.hasDumbBuffer(self)
+	local has_dumb_p = ffi.new("uint64_t[1]");
+	local res = drmGetCap(self.Handle, DRM_CAP_DUMB_BUFFER, has_dumb_p)
+
+	if res ~= 0 then
+		return false, "EOPNOTSUPP"
+	end
+
+	return has_dumb_p[0] ~= 0;
+end
+
+
+
+
+local function modeset_open(node)
+
+	local fd = open(node, bor(O_RDWR, O_CLOEXEC));
+	if (fd < 0) then
+		fprintf(io.stderr, "cannot open '%s': %m\n", node);
 		return false, ffi.errno();
 	end
 
-	if (drmGetCap(fd, DRM_CAP_DUMB_BUFFER, &has_dumb) < 0 or not has_dumb) then
-		fprintf(stderr, "drm device '%s' does not support dumb buffers\n", node);
+	local has_dumb_p = ffi.new("uint64_t[1]");
+	if (drmGetCap(fd, DRM_CAP_DUMB_BUFFER, has_dumb_p) < 0 or (has_dumb_p[0] == 0)) then
+		fprintf(io.stderr, "drm device '%s' does not support dumb buffers\n", node);
 		close(fd);
-		return -EOPNOTSUPP;
+		return false, EOPNOTSUPP;
 	end
 
 	return fd;
@@ -84,8 +107,7 @@ struct modeset_dev {
 
 local modeset_list = {};
 
-
-
+--[=[
 local function modeset_prepare(fd)
 
 	drmModeRes *res;
@@ -142,103 +164,104 @@ local function modeset_prepare(fd)
 end
 
 
-local function modeset_setup_dev(int fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
+local function modeset_setup_dev(fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
 
-	int ret;
-
-	/* check if a monitor is connected */
-	if (conn.connection != DRM_MODE_CONNECTED) {
-		fprintf(stderr, "ignoring unused connector %u\n",
+	-- check if a monitor is connected */
+	if (conn.connection ~= DRM_MODE_CONNECTED) then
+		fprintf(io.stderr, "ignoring unused connector %u\n",
 			conn.connector_id);
-		return -ENOENT;
+		return false, ENOENT;
+	end
+
+	-- check if there is at least one valid mode */
+	if (conn.count_modes == 0) then
+		fprintf(io.stderr, "no valid mode for connector %u\n",
+			conn.connector_id);
+		return false, EFAULT;
 	}
 
-	/* check if there is at least one valid mode */
-	if (conn.count_modes == 0) {
-		fprintf(stderr, "no valid mode for connector %u\n",
-			conn.connector_id);
-		return -EFAULT;
-	}
-
-	/* copy the mode information into our device structure */
-	memcpy(&dev.mode, &conn.modes[0], sizeof(dev.mode));
+	-- copy the mode information into our device structure */
+	--memcpy(&dev.mode, &conn.modes[0], sizeof(dev.mode));
+	dev.mode = conn.modes[0];
 	dev.width = conn.modes[0].hdisplay;
 	dev.height = conn.modes[0].vdisplay;
-	fprintf(stderr, "mode for connector %u is %ux%u\n",
+	fprintf(io.stderr, "mode for connector %u is %ux%u\n",
 		conn.connector_id, dev.width, dev.height);
 
-	/* find a crtc for this connector */
-	ret = modeset_find_crtc(fd, res, conn, dev);
-	if (ret) {
-		fprintf(stderr, "no valid crtc for connector %u\n",
+	-- find a crtc for this connector
+	local ret = modeset_find_crtc(fd, res, conn, dev);
+	if (not ret) then
+		fprintf(io.stderr, "no valid crtc for connector %u\n",
 			conn.connector_id);
 		return ret;
-	}
+	end
 
-	/* create a framebuffer for this CRTC */
+	-- create a framebuffer for this CRTC
 	ret = modeset_create_fb(fd, dev);
-	if (ret) {
-		fprintf(stderr, "cannot create framebuffer for connector %u\n",
+	if (not ret) then
+		fprintf(io.stderr, "cannot create framebuffer for connector %u\n",
 			conn.connector_id);
 		return ret;
-	}
+	end
 
-	return 0;
+	return true;
 end
 
 
-local function modeset_find_crtc(int fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
+local function modeset_find_crtc(fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
 
 	drmModeEncoder *enc;
 	unsigned int i, j;
 	int32_t crtc;
 	struct modeset_dev *iter;
 
-	/* first try the currently conected encoder+crtc */
-	if (conn.encoder_id)
+	-- first try the currently conected encoder+crtc
+	if (conn.encoder_id ~= 0) then
 		enc = drmModeGetEncoder(fd, conn.encoder_id);
 	else
-		enc = NULL;
+		enc = nil;
+	end
 
-	if (enc) {
-		if (enc.crtc_id) {
+	if (enc) then
+		if (enc.crtc_id ~= 0) then
 			crtc = enc.crtc_id;
-			for (iter = modeset_list; iter; iter = iter.next) {
-				if (iter.crtc == crtc) {
+			for _,iter in ipairs(modeset_list) do
+				if (iter.crtc == crtc) then
 					crtc = -1;
 					break;
-				}
-			}
+				end
+			end
 
-			if (crtc >= 0) {
+			if (crtc >= 0) then
 				drmModeFreeEncoder(enc);
 				dev.crtc = crtc;
 				return 0;
-			}
-		}
+			end
+		end
 
 		drmModeFreeEncoder(enc);
-	}
+	end
 
-	/* If the connector is not currently bound to an encoder or if the
+	--[[ If the connector is not currently bound to an encoder or if the
 	 * encoder+crtc is already used by another connector (actually unlikely
 	 * but lets be safe), iterate all other available encoders to find a
-	 * matching CRTC. */
-	for (i = 0; i < conn.count_encoders; ++i) {
+	 * matching CRTC. --]]
+	local i = 0;
+	while (i < conn.count_encoders) do
 		enc = drmModeGetEncoder(fd, conn.encoders[i]);
-		if (!enc) {
-			fprintf(stderr, "cannot retrieve encoder %u:%u (%d): %m\n",
-				i, conn.encoders[i], errno);
+		if (enc == nil) then
+			fprintf(io.stderr, "cannot retrieve encoder %u:%u (%d): %m\n",
+				i, conn.encoders[i], ffi.errno());
 			continue;
-		}
+		end
 
-		/* iterate all global CRTCs */
+		-- iterate all global CRTCs 
 		for (j = 0; j < res.count_crtcs; ++j) {
-			/* check whether this CRTC works with the encoder */
+			-- check whether this CRTC works with the encoder */
 			if (!(enc.possible_crtcs & (1 << j)))
 				continue;
 
-			/* check that no other device already uses this CRTC */
+			-- check that no other device already uses this CRTC */
 			crtc = res.crtcs[j];
 			for (iter = modeset_list; iter; iter = iter.next) {
 				if (iter.crtc == crtc) {
@@ -247,7 +270,7 @@ local function modeset_find_crtc(int fd, drmModeRes *res, drmModeConnector *conn
 				}
 			}
 
-			/* we have found a CRTC, so save it and return */
+			-- we have found a CRTC, so save it and return */
 			if (crtc >= 0) {
 				drmModeFreeEncoder(enc);
 				dev.crtc = crtc;
@@ -256,72 +279,74 @@ local function modeset_find_crtc(int fd, drmModeRes *res, drmModeConnector *conn
 		}
 
 		drmModeFreeEncoder(enc);
+		i = i + 1;
 	}
 
-	fprintf(stderr, "cannot find suitable CRTC for connector %u\n",
+	fprintf(io.stderr, "cannot find suitable CRTC for connector %u\n",
 		conn.connector_id);
-	return -ENOENT;
+	
+	return false, ENOENT;
 end
 
 
 
 local function modeset_create_fb(int fd, struct modeset_dev *dev)
 
-	struct drm_mode_create_dumb creq;
 	struct drm_mode_destroy_dumb dreq;
-	struct drm_mode_map_dumb mreq;
+	
 	int ret;
 
 	-- create dumb buffer
-	memset(&creq, 0, sizeof(creq));
+	local creq = ffi.new("struct drm_mode_create_dumb");
 	creq.width = dev.width;
 	creq.height = dev.height;
 	creq.bpp = 32;
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &creq);
-	if (ret < 0) {
+	local ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, creq);
+	if (ret < 0) then
 		fprintf(stderr, "cannot create dumb buffer (%d): %m\n",
 			errno);
-		return -errno;
-	}
+		return false, ffi.errno();
+	end
+
 	dev.stride = creq.pitch;
 	dev.size = creq.size;
 	dev.handle = creq.handle;
 
-	/* create framebuffer object for the dumb-buffer */
+	-- create framebuffer object for the dumb-buffer
 	ret = drmModeAddFB(fd, dev.width, dev.height, 24, 32, dev.stride,
-			   dev.handle, &dev.fb);
-	if (ret) {
-		fprintf(stderr, "cannot create framebuffer (%d): %m\n",
+			   dev.handle, dev.fb);
+	if (ret ~= 0) then
+		fprintf(io.stderr, "cannot create framebuffer (%d): %m\n",
 			errno);
 		ret = -errno;
 		goto err_destroy;
-	}
+	end
 
 	-- prepare buffer for memory mapping */
-	memset(&mreq, 0, sizeof(mreq));
+	mreq = ffi.new("struct drm_mode_map_dumb");
 	mreq.handle = dev.handle;
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq);
-	if (ret) {
-		fprintf(stderr, "cannot map dumb buffer (%d): %m\n",
-			errno);
-		ret = -errno;
+	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, mreq);
+	if (ret ~= 0) then
+		fprintf(io.stderr, "cannot map dumb buffer (%d): %m\n",
+			ffi.errno());
+		ret = false;
 		goto err_fb;
-	}
+	end
 
 	-- perform actual memory mapping */
 	dev.map = mmap(0, dev.size, PROT_READ | PROT_WRITE, MAP_SHARED,
 		        fd, mreq.offset);
-	if (dev.map == MAP_FAILED) {
-		fprintf(stderr, "cannot mmap dumb buffer (%d): %m\n",
-			errno);
-		ret = -errno;
+	if (dev.map == MAP_FAILED) then
+		fprintf(io.stderr, "cannot mmap dumb buffer (%d): %m\n",
+			ffi.errno());
+		ret = false;
 		goto err_fb;
-	}
+	end
 
 	-- clear the framebuffer to 0 */
 	memset(dev.map, 0, dev.size);
 
-	return 0;
+	return true;
 
 err_fb:
 	drmModeRmFB(fd, dev.fb);
@@ -335,17 +360,21 @@ end
 
 
 
-local function next_color(bool *up, uint8_t cur, unsigned int mod)
+local function next_color(up, uint8_t cur, mod)
+	local nextone = cur;
 
-	uint8_t next;
-
-	next = cur + (*up ? 1 : -1) * (rand() % mod);
-	if ((*up && next < cur) || (!*up && next > cur)) then
-		*up = !*up;
-		next = cur;
+	if up then
+		nextone = nextone + rand()%mod;
+	else
+		nextone = nextone - rand()%mod;
 	end
 
-	return next;
+	if ((up and nextone < cur) or (not up and nextone > cur)) then
+		up = not up;
+		nextone = cur;
+	end
+
+	return nextone, up;
 end
 
 
@@ -356,16 +385,18 @@ local function modeset_draw()
 	unsigned int i, j, k, off;
 	struct modeset_dev *iter;
 
-	srand(time(NULL));
-	r = rand() % 0xff;
-	g = rand() % 0xff;
-	b = rand() % 0xff;
-	r_up = g_up = b_up = true;
+	srand(time(nil));
+	local r = rand() % 0xff;
+	local g = rand() % 0xff;
+	local b = rand() % 0xff;
+	local r_up = true;
+	local g_up = true;
+	local b_up = true;
 
-	for (i = 0; i < 50; ++i) {
-		r = next_color(&r_up, r, 20);
-		g = next_color(&g_up, g, 10);
-		b = next_color(&b_up, b, 5);
+	for i = 0, 49 do
+		r, r_up = next_color(r_up, r, 20);
+		g, g_up = next_color(g_up, g, 10);
+		b, b_up = next_color(b_up, b, 5);
 
 		for (iter = modeset_list; iter; iter = iter.next) {
 			for (j = 0; j < iter.height; ++j) {
@@ -383,8 +414,8 @@ end
 
 
 
-static void modeset_cleanup(int fd)
-{
+local function modeset_cleanup(fd)
+
 	struct modeset_dev *iter;
 	struct drm_mode_destroy_dumb dreq;
 
@@ -418,28 +449,31 @@ static void modeset_cleanup(int fd)
 		-- free allocated memory
 		free(iter);
 	}
-}
+end
+--]=]
 
 local function main(argc, argv)
 
-	int ret, fd;
-	const char *card;
-	struct modeset_dev *iter;
+	--int ret, fd;
+	--struct modeset_dev *iter;
+	local nodename = "/dev/dri/card0";
 
 	-- check which DRM device to open */
 	if (argc > 0) then
-		card = argv[1];
-	else
-		card = "/dev/dri/card0";
+		nodename = argv[1];
 	end
 
-	fprintf(stderr, "using card '%s'\n", card);
+	local card, err = RenderCard(nodename);
 
-	-- open the DRM device
-	local fd, err = modeset_open(&fd, card);
-	if (ret)
-		goto out_return;
+	if not card then
+		fprintf(io.stderr, "could not create card: %s\n", err);
+		return false;
+	end
 
+	print("Card Has Dumb Buffer Capability: ", card:hasDumbBuffer());
+
+
+--[[
 	-- prepare all connectors and CRTCs
 	ret = modeset_prepare(fd);
 	if (ret)
@@ -473,7 +507,8 @@ out_return:
 		fprintf(stderr, "exiting\n");
 	}
 	return ret;
-}
+--]]
+end
 
 
 main(#arg, arg)

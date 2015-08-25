@@ -4,7 +4,7 @@ local ffi = require("ffi")
 local bit = require("bit")
 local bor = bit.bor
 
-local drm = require("drm_h")
+local drm_h = require("drm_h")
 local stat = require("stat")()
 
 ffi.cdef[[
@@ -733,8 +733,11 @@ extern char *drmGetPrimaryDeviceNameFromFd(int fd);
 extern char *drmGetRenderDeviceNameFromFd(int fd);
 ]]
 
+local Lib_drm = ffi.load("drm")
 
 local exports = {
+	Lib_drm = Lib_drm;
+
     -- constants
     DRM_MAX_MINOR  = 16;
 
@@ -767,4 +770,22 @@ local exports = {
 
     DRM_EVENT_CONTEXT_VERSION = 2;
 
+	-- Library functions
+	drmAvailable = Lib_drm.drmAvailable;
+	drmGetCap = Lib_drm.drmGetCap;
+	drmOpen = Lib_drm.drmOpen;
 }
+
+setmetatable(exports, {
+	__call = function(self, ...)
+		for k,v in pairs(exports) do
+			_G[k] = v;
+		end
+
+		drm_h();
+
+		return self;
+	end,
+})
+
+return exports

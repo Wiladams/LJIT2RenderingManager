@@ -759,5 +759,15 @@ local exports = {
 	--DRM_CLOEXEC = O_CLOEXEC;
 }
 
+setmetatable(exports, {
+  __call = function(self, ...)
+    for k,v in pairs(self) do
+      _G[k] = v;
+    end
+
+    return self;
+  end,
+})
+
 return exports
 
