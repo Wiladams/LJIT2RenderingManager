@@ -716,6 +716,8 @@ local	_DRM_LOCK_HELD	=0x80000000; --*< Hardware lock is held
 local	_DRM_LOCK_CONT	=0x40000000; --*< Hardware lock is contended 
 
 local exports = {
+	drm_mode = drm_mode;
+	
 	DRM_NAME		= "drm";	--*< Name in kernel, /dev, and /proc 
 	DRM_MIN_ORDER	= 5;	  	--*< At least 2^5 bytes = 32 bytes 
 	DRM_MAX_ORDER	= 22;	  	--*< Up to 2^22 bytes = 4MB 

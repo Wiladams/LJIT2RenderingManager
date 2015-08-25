@@ -309,57 +309,64 @@ struct drm_mode_atomic {
 };
 ]]
 
-local DRM_MODE_TYPE_BUILTIN	(1<<0);
+local DRM_MODE_TYPE_BUILTIN	= lshift(1,0);
 
-local DRM_MODE_PROP_TYPE = function(n) return lshift((n), 6) end;
+local DRM_MODE_PROP_TYPE = function(n) return lshift(n, 6) end;
+
 local	DRM_MODE_PAGE_FLIP_EVENT =0x01;
 local	DRM_MODE_PAGE_FLIP_ASYNC =0x02;
 local	DRM_MODE_ATOMIC_TEST_ONLY =0x0100;
 local	DRM_MODE_ATOMIC_NONBLOCK  =0x0200;
 local	DRM_MODE_ATOMIC_ALLOW_MODESET = 0x0400;
 
+local	DRM_MODE_PROP_PENDING	= lshift(1,0);
+local	DRM_MODE_PROP_RANGE	= lshift(1,1);
+local	DRM_MODE_PROP_IMMUTABLE	= lshift(1,2);
+local	DRM_MODE_PROP_ENUM	= lshift(1,3); -- enumerated type with text strings */
+local	DRM_MODE_PROP_BLOB	= lshift(1,4);
+local	DRM_MODE_PROP_BITMASK	= lshift(1,5); -- bitmask of enumerated types */
 
 local Constants = {
 	DRM_DISPLAY_INFO_LEN	= 32;
 	DRM_CONNECTOR_NAME_LEN	= 32;
 	DRM_PROP_NAME_LEN	= ffi.C.DRM_PROP_NAME_LEN;
 
-	DRM_MODE_TYPE_BUILTIN	= lshift(1<<0);
-	DRM_MODE_TYPE_CLOCK_C	=  lshift((1<<1) | DRM_MODE_TYPE_BUILTIN);
-	DRM_MODE_TYPE_CRTC_C	=  lshift((1<<2) | DRM_MODE_TYPE_BUILTIN);
-	DRM_MODE_TYPE_PREFERRED	=  lshift(1<<3);
-	DRM_MODE_TYPE_DEFAULT	=  lshift(1<<4);
-	DRM_MODE_TYPE_USERDEF	=  lshift(1<<5);
-	DRM_MODE_TYPE_DRIVER	=  lshift(1<<6);
+	DRM_MODE_TYPE_BUILTIN	= DRM_MODE_TYPE_BUILTIN;
+	DRM_MODE_TYPE_CLOCK_C	=  bor(lshift(1,1) , DRM_MODE_TYPE_BUILTIN);
+	DRM_MODE_TYPE_CRTC_C	=  bor(lshift(1,2) , DRM_MODE_TYPE_BUILTIN);
+	DRM_MODE_TYPE_PREFERRED	=  lshift(1,3);
+	DRM_MODE_TYPE_DEFAULT	=  lshift(1,4);
+	DRM_MODE_TYPE_USERDEF	=  lshift(1,5);
+	DRM_MODE_TYPE_DRIVER	=  lshift(1,6);
 
 -- Video mode flags */
 -- bit compatible with the xorg definitions. */
-	DRM_MODE_FLAG_PHSYNC			= lshift(1<<0);
-	DRM_MODE_FLAG_NHSYNC			= lshift(1<<1);
-	DRM_MODE_FLAG_PVSYNC			= lshift(1<<2);
-	DRM_MODE_FLAG_NVSYNC			= lshift(1<<3);
-	DRM_MODE_FLAG_INTERLACE			= lshift(1<<4);
-	DRM_MODE_FLAG_DBLSCAN			= lshift(1<<5);
-	DRM_MODE_FLAG_CSYNC			= lshift(1<<6);
-	DRM_MODE_FLAG_PCSYNC			= lshift(1<<7);
-	DRM_MODE_FLAG_NCSYNC			= lshift(1<<8);
-	DRM_MODE_FLAG_HSKEW			= lshift(1<<9);
-	DRM_MODE_FLAG_BCAST			= lshift(1<<10);
-	DRM_MODE_FLAG_PIXMUX			= lshift(1<<11);
-	DRM_MODE_FLAG_DBLCLK			= lshift(1<<12);
-	DRM_MODE_FLAG_CLKDIV2			= lshift(1<<13);
+	DRM_MODE_FLAG_PHSYNC			= lshift(1,0);
+	DRM_MODE_FLAG_NHSYNC			= lshift(1,1);
+	DRM_MODE_FLAG_PVSYNC			= lshift(1,2);
+	DRM_MODE_FLAG_NVSYNC			= lshift(1,3);
+	DRM_MODE_FLAG_INTERLACE			= lshift(1,4);
+	DRM_MODE_FLAG_DBLSCAN			= lshift(1,5);
+	DRM_MODE_FLAG_CSYNC			= lshift(1,6);
+	DRM_MODE_FLAG_PCSYNC			= lshift(1,7);
+	DRM_MODE_FLAG_NCSYNC			= lshift(1,8);
+	DRM_MODE_FLAG_HSKEW			= lshift(1,9);
+	DRM_MODE_FLAG_BCAST			= lshift(1,10);
+	DRM_MODE_FLAG_PIXMUX			= lshift(1,11);
+	DRM_MODE_FLAG_DBLCLK			= lshift(1,12);
+	DRM_MODE_FLAG_CLKDIV2			= lshift(1,13);
 
 
-	DRM_MODE_FLAG_3D_MASK			= lshift(0x1f<<14);
-	 DRM_MODE_FLAG_3D_NONE			= lshift(0<<14);
-	 DRM_MODE_FLAG_3D_FRAME_PACKING		= lshift(1<<14);
-	 DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	= lshift(2<<14);
-	 DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	= lshift(3<<14);
-	 DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	= lshift(4<<14);
-	 DRM_MODE_FLAG_3D_L_DEPTH		= lshift(5<<14);
-	 DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	= lshift(6<<14);
-	 DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	= lshift(7<<14);
-	 DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	= lshift(8<<14);
+	DRM_MODE_FLAG_3D_MASK			= lshift(0x1f,14);
+	 DRM_MODE_FLAG_3D_NONE			= lshift(0,14);
+	 DRM_MODE_FLAG_3D_FRAME_PACKING		= lshift(1,14);
+	 DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	= lshift(2,14);
+	 DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	= lshift(3,14);
+	 DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	= lshift(4,14);
+	 DRM_MODE_FLAG_3D_L_DEPTH		= lshift(5,14);
+	 DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	= lshift(6,14);
+	 DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	= lshift(7,14);
+	 DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	= lshift(8,14);
 
 
 -- DPMS flags */
@@ -391,8 +398,8 @@ local Constants = {
 	DRM_MODE_DIRTY_ON       = 1;
 	DRM_MODE_DIRTY_ANNOTATE = 2;
 
-	DRM_MODE_PRESENT_TOP_FIELD	= lshift(1<<0);
-	DRM_MODE_PRESENT_BOTTOM_FIELD	= lshift(1<<1);
+	DRM_MODE_PRESENT_TOP_FIELD	= lshift(1,0);
+	DRM_MODE_PRESENT_BOTTOM_FIELD	= lshift(1,1);
 
 
 	DRM_MODE_ENCODER_NONE	=0;
@@ -435,19 +442,19 @@ local Constants = {
 	DRM_MODE_CONNECTOR_DSI		=16;
 
 
-	DRM_MODE_PROP_PENDING	= lshift(1<<0);
-	DRM_MODE_PROP_RANGE	= lshift(1<<1);
-	DRM_MODE_PROP_IMMUTABLE	= lshift(1<<2);
-	DRM_MODE_PROP_ENUM	= lshift(1<<3); -- enumerated type with text strings */
-	DRM_MODE_PROP_BLOB	= lshift(1<<4);
-	DRM_MODE_PROP_BITMASK	= lshift(1<<5); -- bitmask of enumerated types */
+	DRM_MODE_PROP_PENDING	= DRM_MODE_PROP_PENDING;
+	DRM_MODE_PROP_RANGE	= DRM_MODE_PROP_RANGE;
+	DRM_MODE_PROP_IMMUTABLE	= DRM_MODE_PROP_IMMUTABLE;
+	DRM_MODE_PROP_ENUM	= DRM_MODE_PROP_ENUM; -- enumerated type with text strings */
+	DRM_MODE_PROP_BLOB	= DRM_MODE_PROP_BLOB;
+	DRM_MODE_PROP_BITMASK	= DRM_MODE_PROP_BITMASK; -- bitmask of enumerated types */
 
 -- non-extended types: legacy bitmask, one bit per type: */
-	DRM_MODE_PROP_LEGACY_TYPE  =( \
-		DRM_MODE_PROP_RANGE | \
-		DRM_MODE_PROP_ENUM | \
-		DRM_MODE_PROP_BLOB | \
-		DRM_MODE_PROP_BITMASK)
+	DRM_MODE_PROP_LEGACY_TYPE  = bor(
+		DRM_MODE_PROP_RANGE ,
+		DRM_MODE_PROP_ENUM ,
+		DRM_MODE_PROP_BLOB ,
+		DRM_MODE_PROP_BITMASK);
 
 
 	DRM_MODE_PROP_EXTENDED_TYPE	=0x0000ffc0;
@@ -459,8 +466,8 @@ local Constants = {
 
 	DRM_MODE_PROP_ATOMIC     =   0x80000000;
 
-	DRM_MODE_FB_INTERLACED	= lshift(1<<0); -- for interlaced framebuffers */
-	DRM_MODE_FB_MODIFIERS	= lshift(1<<1); -- enables ->modifer[] */
+	DRM_MODE_FB_INTERLACED	= lshift(1,0); -- for interlaced framebuffers */
+	DRM_MODE_FB_MODIFIERS	= lshift(1,1); -- enables ->modifer[] */
 
 	DRM_MODE_FB_DIRTY_ANNOTATE_COPY= 0x01;
 	DRM_MODE_FB_DIRTY_ANNOTATE_FILL= 0x02;
@@ -485,7 +492,16 @@ local Constants = {
 }
 
 local exports = {
-	
+	Constants = Constants;
 }
+setmetatable(exports, {
+	__call = function(self, ...)
+		for k,v in pairs(self.Constants) do
+			_G[k] = v;
+		end
+
+		return self;
+	end,
+})
 
 return exports
