@@ -55,9 +55,17 @@ local function test_get_stats()
 	end
 end
 
+local function show_all()
+	test_version();
+	test_lib_version();
+	test_bus_ID();
+	test_get_stats();
+	card:print();
+end
 
 
-test_version();
+--test_version();
 --test_lib_version();
 --test_bus_ID();
 --test_get_stats();
+show_all();

@@ -325,6 +325,7 @@ local function drm_property_type_is(property, atype)
   return band(property.flags, atype);
 end
 
+--[[
 local Constants = {
     -- Constants
   DRM_MODE_FEATURE_KMS   = 1;
@@ -332,29 +333,48 @@ local Constants = {
   DRM_PLANE_TYPE_OVERLAY =0;
   DRM_PLANE_TYPE_PRIMARY =1;
   DRM_PLANE_TYPE_CURSOR  =2;
-
 }
+--]]
 
+--[[
 local Macros = {
   -- local functions/macros
   drm_property_type_is = drm_property_type_is;  
 }
+--]]
 
 local Lib_drm = ffi.load("drm")
+--[[
 local Functions = {
     drmModeGetConnector = Lib_drm.drmModeGetConnector;
     drmModeGetResources = Lib_drm.drmModeGetResources;
     drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
     drmModeFreeResources = Lib_drm.drmModeFreeResources;
 }
+--]]
 
 local exports = {
-  Lib_drm = Lib_drm;
+    Lib_drm = Lib_drm;
 
-  Constants = Constants;
-  Macros = Macros;
-  Functions = Functions;
+
+    -- Constants
+    DRM_MODE_FEATURE_KMS   = 1;
+    DRM_MODE_FEATURE_DIRTYFB = 1;
+    DRM_PLANE_TYPE_OVERLAY =0;
+    DRM_PLANE_TYPE_PRIMARY =1;
+    DRM_PLANE_TYPE_CURSOR  =2;
+
+    -- Macros
+    drm_property_type_is = drm_property_type_is;  
+
+    -- library functions
+    drmCheckModesettingSupported = Lib_drm.drmCheckModesettingSupported;
+    drmModeGetConnector = Lib_drm.drmModeGetConnector;
+    drmModeGetResources = Lib_drm.drmModeGetResources;
+    drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
+    drmModeFreeResources = Lib_drm.drmModeFreeResources;
 }
+
 
 setmetatable(exports, {
   __call = function(self, ...)
