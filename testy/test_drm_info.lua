@@ -27,9 +27,9 @@ end
 
 function DRM.open(self, nodename)
 	nodename = nodename or "/dev/dri/card0";
-
-	local fd = open(nodename, bor(O_RDWR, O_CLOEXEC))
-
+	local flags = bor(O_RDWR, O_CLOEXEC);
+print(string.format("Flags: 0x%x", flags));
+	local fd = open(nodename, flags)
 	return fd;
 end
 

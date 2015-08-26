@@ -88,10 +88,10 @@ end
 local exports = {
 
 	-- fcntl
-	O_RDONLY	= 00000000;
-	O_WRONLY	= 00000001;
-	O_RDWR		= 00000002;
-	O_CLOEXEC	= 02000000;	-- set close_on_exec
+	O_RDONLY	= tonumber(00000000,8);
+	O_WRONLY	= tonumber(00000001,8);
+	O_RDWR		= tonumber(00000002,8);
+	O_CLOEXEC	= tonumber(02000000,8);	-- set close_on_exec
 
 
 	fprintf = fprintf;
