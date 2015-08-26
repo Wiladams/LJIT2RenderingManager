@@ -8,125 +8,7 @@ local xf86drmMode = require("xf86drmMode_ffi")()
 local utils = require("test_utils")()
 
 
---[[
-typedef struct _drmModeModeInfo {
-  uint32_t clock;
-  uint16_t hdisplay, hsync_start, hsync_end, htotal, hskew;
-  uint16_t vdisplay, vsync_start, vsync_end, vtotal, vscan;
-
-  uint32_t vrefresh;
-
-  uint32_t flags;
-  uint32_t type;
-  char name[DRM_DISPLAY_MODE_LEN];
-} drmModeModeInfo, *drmModeModeInfoPtr;
---]]
-local DRMCardMode = {}
-setmetatable(DRMCardMode, {
-	__call = function(self, ...)
-		return self:new(...);
-	end,
-})
-
-local DRMCardMode_mt = {
-	__index = DRMCardMode;
-	__tostring = function(self)
-		return string.format([[
-   Name: %s
-  Clock: %d
-   Size: %dx%d
-Horizontal
-  Start: %d  End: %d  Total: %d  Skew: %d
-Vertical
-  Start: %d  End: %d  Total: %d  Scan: %d
-
-Refresh: %d
-
-  Flags: %d
-   Type: %d
-]],
-	self.Name,
-	self.Clock,
-	self.Width,
-	self.Height,
-	self.HSyncStart,
-	self.HSyncEnd,
-	self.HTotal,
-	self.HSkew,
-	self.VSyncStart,
-	self.VSyncEnd,
-	self.VTotal,
-	self.VScan,
-	self.VRefresh,
-	self.Flags,
-	self.Type);
-	end;
-}
-
-
-
-function DRMCardMode.init(self, m)
-	local obj = {
-		Clock = m.clock;
-		
-		Width = m.hdisplay;
-		HSyncStart = m.hsync_start;
-		HSyncEnd = m.hsync_end;
-		HTotal = m.htotal;
-		HSkew = m.hskew;
-
-		Height = m.vdisplay;
-		VSyncStart = m.vsync_start;
-		VSyncEnd = m.vsync_end;
-		VTotal = m.vtotal;
-		VScan = m.vscan;
-		VRefresh = m.vrefresh;
-
-		Flags = m.flags;
-		Type = m.type;
-
-		Name = ffi.string(m.name);
-	}
-	setmetatable(obj, DRMCardMode_mt)
-
-	return obj
-end
-
-function DRMCardMode.new(self, modeInfo)
-	return self:init(modeInfo)
-end
-
-function DRMCardMode.toString(self)
-	return string.format([[
-Name: %s
-Clock: %d
-Size: %dx%d
-Horizontal
-  Start: %d  End: %d  Total: %d  Skew: %d
-Vertical
-  Start: %d  End: %d  Total: %d  Scan: %d
-
-Refresh: %d
-
-Flags: %d
-Type: %d
-]],
-	self.Name,
-	self.Clock,
-	self.Width,
-	self.Height,
-	self.HSyncStart,
-	self.HSyncEnd,
-	self.HTotal,
-	self.HSkew,
-	self.VSyncStart,
-	self.VSyncEnd,
-	self.VTotal,
-	self.VScan,
-	self.VRefresh,
-	self.Flags,
-	self.Type	);
-end
+local DRMCardMode = require("DRMCardMode")
 
 
 
@@ -167,6 +49,8 @@ local DRMCardConnector_mt = {
 Encoder ID: %d
       Type: %d
    Type ID: %d
+Connection: %d
+
  Size (mm): %dx%d
 
      Modes: %d
@@ -177,6 +61,7 @@ Encoder ID: %d
 	self.EncoderId,
 	self.Type,
 	self.TypeId,
+	self.Connection,
 	self.MMWidth,
 	self.MMHeight,
 	self.ModeCount,
@@ -191,18 +76,21 @@ function DRMCardConnector.init(self, conn)
 		EncoderId = conn.encoder_id;
 		Type = conn.connector_type;
 		TypeId = conn.connector_type_id;
+		Connection = tonumber(conn.connection);
 		MMWidth = conn.mmWidth;
 		MMHeight = conn.mmHeight;
 
 		Modes = {};
 		Props = {};
-		Encoders = {};
+		EncoderIds = {};
 
 		ModeCount = conn.count_modes;
 		PropsCount = conn.count_props;
 		EncoderCount = conn.count_encoders;
 	}
+	setmetatable(obj, DRMCardConnector_mt);
 
+	-- get the modes
 	local idx = 0;
 	while (idx < tonumber(conn.count_modes) ) do
 		local mode = DRMCardMode(conn.modes[idx])
@@ -214,7 +102,13 @@ function DRMCardConnector.init(self, conn)
 		idx = idx + 1;
 	end
 
-	setmetatable(obj, DRMCardConnector_mt);
+	-- get the encoder ids
+	idx = 0;
+	while (idx < conn.count_encoders) do
+		table.insert(obj.EncoderIds, tonumber(conn.encoders[idx]))
+		idx = idx + 1;
+	end
+
 
 	return obj;
 end
@@ -229,7 +123,9 @@ function DRMCardConnector.new(self, fd, connector_id)
 	return self:init(conn);
 end
 
-
+function DRMCardConnector.isConnected(self)
+	return self.Connection == ffi.C.DRM_MODE_CONNECTED;
+end
 
 
 
@@ -448,10 +344,6 @@ function DRMCard.prepare(self)
 			free(dev);
 			continue;
 		end
-
-		-- free connector data and link device into global list */
-		dev.next = modeset_list;
-		modeset_list = dev;
 	}
 --]]
 

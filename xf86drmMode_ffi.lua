@@ -84,7 +84,9 @@ typedef struct _drmModeCrtc {
   int gamma_size; /**< Number of gamma stops */
 
 } drmModeCrtc, *drmModeCrtcPtr;
+]]
 
+ffi.cdef[[
 typedef struct _drmModeEncoder {
   uint32_t encoder_id;
   uint32_t encoder_type;
