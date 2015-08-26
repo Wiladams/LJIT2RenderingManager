@@ -338,9 +338,20 @@ local Macros = {
   drm_property_type_is = drm_property_type_is;  
 }
 
+local Lib_drm = ffi.load("drm")
+local Functions = {
+    drmModeGetConnector = Lib_drm.drmModeGetConnector;
+    drmModeGetResources = Lib_drm.drmModeGetResources;
+    drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
+    drmModeFreeResources = Lib_drm.drmModeFreeResources;
+}
+
 local exports = {
+  Lib_drm = Lib_drm;
+
   Constants = Constants;
   Macros = Macros;
+  Functions = Functions;
 }
 
 setmetatable(exports, {
@@ -350,6 +361,10 @@ setmetatable(exports, {
     end
 
     for k,v in pairs(self.Macros) do
+      _G[k] = v;
+    end
+
+    for k,v in pairs(self.Functions) do
       _G[k] = v;
     end
 

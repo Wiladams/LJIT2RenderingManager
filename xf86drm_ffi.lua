@@ -68,7 +68,36 @@ typedef struct _drmVersion {
     int     desc_len;	          /**< Length of desc buffer */
     char    *desc;                /**< User-space buffer to hold desc */
 } drmVersion, *drmVersionPtr;
+]]
 
+local drmVersion_mt = {
+	__tostring = function(self)
+		return string.format([[
+       Version: %d.%d.%d
+          Name: %s
+          Date: %s
+   Description: %s
+]],
+	self.version_major,
+	self.version_minor,
+	self.version_patchlevel,
+	ffi.string(self.name, self.name_len),
+	ffi.string(self.date, self.date_len),
+	ffi.string(self.desc, self.desc_len)
+	)
+	end,
+
+	__index = {
+		toLua = function(self)
+			local tbl = {}
+
+			return tbl;
+		end,
+	},
+}
+ffi.metatype(ffi.typeof("drmVersion"), drmVersion_mt)
+
+ffi.cdef[[
 typedef struct _drmStats {
     unsigned long count;	     /**< Number of data */
     struct {

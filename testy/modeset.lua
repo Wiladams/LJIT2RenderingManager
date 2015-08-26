@@ -21,50 +21,6 @@ local xf86drm = require("xf86drm_ffi")()
 local xf86drmMode = require("xf86drmMode_ffi")()
 local utils = require("test_utils")()
 
---  RenderCard represents a single graphics
--- card within a system
-local RenderCard = {}
-setmetatable(RenderCard, {
-	__call = function(self, ...)
-		return self:new(...);
-	end,
-})
-
-
-local RenderCard_mt = {
-	__index = RenderCard;
-}
-
-function RenderCard.init(fd)
-	local obj = {
-		Handle = fd;
-	}
-	setmetatable(obj, RenderCard_mt);
-
-	return obj;
-end
-
-function RenderCard.new(self, nodename)
-	local fd = open(nodename, bor(O_RDWR, O_CLOEXEC));
-	if (fd < 0) then
-		return false, strerror(ffi.errno());
-	end
-
-	return self:init(fd);
-end
-
-function RenderCard.hasDumbBuffer(self)
-	local has_dumb_p = ffi.new("uint64_t[1]");
-	local res = drmGetCap(self.Handle, DRM_CAP_DUMB_BUFFER, has_dumb_p)
-
-	if res ~= 0 then
-		return false, "EOPNOTSUPP"
-	end
-
-	return has_dumb_p[0] ~= 0;
-end
-
-
 
 
 local function modeset_open(node)
@@ -463,14 +419,12 @@ local function main(argc, argv)
 		nodename = argv[1];
 	end
 
-	local card, err = RenderCard(nodename);
+	local card, err = DRMCard(nodename);
 
-	if not card then
+	if not card or not card:hasDumbBuffer() then
 		fprintf(io.stderr, "could not create card: %s\n", err);
 		return false;
 	end
-
-	print("Card Has Dumb Buffer Capability: ", card:hasDumbBuffer());
 
 
 --[[

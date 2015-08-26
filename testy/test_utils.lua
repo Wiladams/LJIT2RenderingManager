@@ -32,6 +32,17 @@ local function fprintf(f, fmt, ...)
 	f:write(string.format(fmt, ...));
 end
 
+local function stringvalue(str, default)
+	default = default or ""
+
+	if str == nil then
+		return default;
+	end
+
+	return ffi.string(str)
+end
+
+
 local errnos = {
 	-- Constants
 	-- errno-base
@@ -76,6 +87,7 @@ local errnos = {
 }
 
 local function strerror(num)
+	num = num or ffi.errno();
 	for k,v in pairs(errnos) do
 		if v == num then
 			return k;
@@ -101,6 +113,7 @@ local exports = {
 	fprintf = fprintf;
 	printf = printf;
 	strerror = strerror;
+	stringvalue = stringvalue;
 
 	-- library functions
 	memcpy = ffi.C.memcpy;
