@@ -85,13 +85,17 @@ local function strerror(num)
 	return string.format("UNKNOWN ERROR: %d", num);
 end
 
+local function octal(val)
+	return tonumber(val,8);
+end
+
 local exports = {
 
 	-- fcntl
-	O_RDONLY	= tonumber(00000000,8);
-	O_WRONLY	= tonumber(00000001,8);
-	O_RDWR		= tonumber(00000002,8);
-	O_CLOEXEC	= tonumber(02000000,8);	-- set close_on_exec
+	O_RDONLY	= octal(00000000);
+	O_WRONLY	= octal(00000001);
+	O_RDWR		= octal(00000002);
+	O_CLOEXEC	= octal(02000000);	-- set close_on_exec
 
 
 	fprintf = fprintf;

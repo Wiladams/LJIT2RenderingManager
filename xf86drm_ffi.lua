@@ -772,7 +772,12 @@ local exports = {
 
 	-- Library functions
 	drmAvailable = Lib_drm.drmAvailable;
+	drmFreeVersion = Lib_drm.drmFreeVersion;
+	drmGetBusid = Lib_drm.drmGetBusid;
 	drmGetCap = Lib_drm.drmGetCap;
+	drmGetLibVersion = Lib_drm.drmGetLibVersion;
+	drmGetStats = Lib_drm.drmGetStats;
+	drmGetVersion = Lib_drm.drmGetVersion;
 	drmOpen = Lib_drm.drmOpen;
 }
 
