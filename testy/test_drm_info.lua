@@ -28,8 +28,11 @@ end
 function DRM.open(self, nodename)
 	nodename = nodename or "/dev/dri/card0";
 	local flags = bor(O_RDWR, O_CLOEXEC);
-print(string.format("Flags: 0x%x", flags));
 	local fd = open(nodename, flags)
+	if fd < 0 then 
+		return false, strerror(ffi.errno());
+	end
+
 	return fd;
 end
 
@@ -38,9 +41,9 @@ local function test_available()
 end
 
 local function test_open()
-	local res = DRM:open();
+	local res,err = DRM:open();
 
-	print("DRM:open: ", res, strerror(ffi.errno()));
+	print("DRM:open: ", res, err);
 end
 
 test_available();
