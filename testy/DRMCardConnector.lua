@@ -104,6 +104,7 @@ function DRMCardConnector.init(self, conn)
 	return obj;
 end
 
+
 function DRMCardConnector.new(self, fd, connector_id)
 	local conn = xf86drmMode.drmModeGetConnector(fd, connector_id);
 	if conn == nil then
