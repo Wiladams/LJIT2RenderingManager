@@ -42,7 +42,7 @@ local function modeset_open(node)
 end 
 
 
---[[
+ffi.cdef[[
 struct modeset_dev {
 	struct modeset_dev *next;
 
@@ -59,93 +59,44 @@ struct modeset_dev {
 	uint32_t crtc;
 	drmModeCrtc *saved_crtc;
 };
---]]
+]]
 
 local modeset_list = {};
 
---[=[
-local function modeset_prepare(fd)
 
-	drmModeRes *res;
-	drmModeConnector *conn;
-	unsigned int i;
-	struct modeset_dev *dev;
-	int ret;
-
-	-- retrieve resources */
-	local res = drmModeGetResources(fd);
-	if (!res) {
-		fprintf(stderr, "cannot retrieve DRM resources (%d): %m\n",
-			errno);
-		return -errno;
-	}
-
-	-- iterate all connectors 
-	for (i = 0; i < res.count_connectors; ++i) {
-		-- get information for each connector */
-		conn = drmModeGetConnector(fd, res.connectors[i]);
-		if (!conn) {
-			fprintf(stderr, "cannot retrieve DRM connector %u:%u (%d): %m\n",
-				i, res.connectors[i], errno);
-			continue;
-		}
+local function modeset_prepare(card)
+	-- iterate all connectors of the card
+	for _, conn in card:connections() do
 
 		-- create a device structure */
-		dev = malloc(sizeof(*dev));
-		memset(dev, 0, sizeof(*dev));
-		dev.conn = conn.connector_id;
+		-- modeset_dev
+		local dev = {
+			conn = conn.connector_id;
+		}
 
 		-- call helper function to prepare this connector */
-		ret = modeset_setup_dev(fd, res, conn, dev);
-		if (ret) then
-			if (ret != -ENOENT) {
-				errno = -ret;
-				fprintf(stderr, "cannot setup device for connector %u:%u (%d): %m\n",
-					i, res.connectors[i], errno);
-			}
-			free(dev);
-			drmModeFreeConnector(conn);
-			continue;
+		local ret = modeset_setup_dev(card, res, conn, dev);
+		if ret then
+			table.insert(modeset_list, conn);
 		end
+	end
 
-		-- free connector data and link device into global list */
-		drmModeFreeConnector(conn);
-		dev.next = modeset_list;
-		modeset_list = dev;
-	}
-
-	-- free resources again */
-	drmModeFreeResources(res);
-	return 0;
+	return true;
 end
 
 
-local function modeset_setup_dev(fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
-
-	-- check if a monitor is connected */
-	if (conn.connection ~= DRM_MODE_CONNECTED) then
-		fprintf(io.stderr, "ignoring unused connector %u\n",
-			conn.connector_id);
-		return false, ENOENT;
-	end
-
-	-- check if there is at least one valid mode */
-	if (conn.count_modes == 0) then
-		fprintf(io.stderr, "no valid mode for connector %u\n",
-			conn.connector_id);
-		return false, EFAULT;
-	}
+--[=[
+local function modeset_setup_dev(card, drmModeRes *res, conn,  dev)
 
 	-- copy the mode information into our device structure */
-	--memcpy(&dev.mode, &conn.modes[0], sizeof(dev.mode));
-	dev.mode = conn.modes[0];
-	dev.width = conn.modes[0].hdisplay;
-	dev.height = conn.modes[0].vdisplay;
-	fprintf(io.stderr, "mode for connector %u is %ux%u\n",
-		conn.connector_id, dev.width, dev.height);
+	dev.mode = conn.Modes[1];
+	dev.width = conn.Modes[1].Width;
+	dev.height = conn.Modes[1].Height;
+--	fprintf(io.stderr, "mode for connector %u is %ux%u\n",
+--		conn.connector_id, dev.width, dev.height);
 
 	-- find a crtc for this connector
-	local ret = modeset_find_crtc(fd, res, conn, dev);
+	local ret = modeset_find_crtc(card, res, conn, dev);
 	if (not ret) then
 		fprintf(io.stderr, "no valid crtc for connector %u\n",
 			conn.connector_id);
@@ -153,7 +104,7 @@ local function modeset_setup_dev(fd, drmModeRes *res, drmModeConnector *conn,  s
 	end
 
 	-- create a framebuffer for this CRTC
-	ret = modeset_create_fb(fd, dev);
+	ret = modeset_create_fb(card, dev);
 	if (not ret) then
 		fprintf(io.stderr, "cannot create framebuffer for connector %u\n",
 			conn.connector_id);
@@ -162,25 +113,18 @@ local function modeset_setup_dev(fd, drmModeRes *res, drmModeConnector *conn,  s
 
 	return true;
 end
+--]=]
 
 
-local function modeset_find_crtc(fd, drmModeRes *res, drmModeConnector *conn,  struct modeset_dev *dev)
-
-	drmModeEncoder *enc;
-	unsigned int i, j;
-	int32_t crtc;
-	struct modeset_dev *iter;
+local function modeset_find_crtc(fd, drmModeRes *res, conn,  dev)
 
 	-- first try the currently conected encoder+crtc
-	if (conn.encoder_id ~= 0) then
-		enc = drmModeGetEncoder(fd, conn.encoder_id);
-	else
-		enc = nil;
-	end
+	local enc = conn.Encoder;
+	local crtc = 0;
 
-	if (enc) then
-		if (enc.crtc_id ~= 0) then
-			crtc = enc.crtc_id;
+	if (enc ~= nil) then
+		if (enc.CrtcId ~= 0) then
+			crtc = enc.CrtcId;
 			for _,iter in ipairs(modeset_list) do
 				if (iter.crtc == crtc) then
 					crtc = -1;
@@ -189,19 +133,18 @@ local function modeset_find_crtc(fd, drmModeRes *res, drmModeConnector *conn,  s
 			end
 
 			if (crtc >= 0) then
-				drmModeFreeEncoder(enc);
 				dev.crtc = crtc;
-				return 0;
+				return true;
 			end
 		end
 
-		drmModeFreeEncoder(enc);
 	end
 
 	--[[ If the connector is not currently bound to an encoder or if the
 	 * encoder+crtc is already used by another connector (actually unlikely
 	 * but lets be safe), iterate all other available encoders to find a
 	 * matching CRTC. --]]
+--[[
 	local i = 0;
 	while (i < conn.count_encoders) do
 		enc = drmModeGetEncoder(fd, conn.encoders[i]);
@@ -242,6 +185,7 @@ local function modeset_find_crtc(fd, drmModeRes *res, drmModeConnector *conn,  s
 		conn.connector_id);
 	
 	return false, ENOENT;
+--]]
 end
 
 
@@ -313,9 +257,9 @@ err_destroy:
 	
 	return ret;
 end
+--]=]
 
-
-
+--[=[
 local function next_color(up, uint8_t cur, mod)
 	local nextone = cur;
 
@@ -367,9 +311,9 @@ local function modeset_draw()
 		usleep(100000);
 	}
 end
+--]=]
 
-
-
+--[=[
 local function modeset_cleanup(fd)
 
 	struct modeset_dev *iter;
@@ -427,21 +371,22 @@ local function main(argc, argv)
 	end
 
 
---[[
 	-- prepare all connectors and CRTCs
 	ret = modeset_prepare(fd);
-	if (ret)
-		goto out_close;
+	if (not ret) then
+		return false;
+	end
 
+--[[
 	-- perform actual modesetting on each found connector+CRTC
-	for (iter = modeset_list; iter; iter = iter.next) {
+	for _, iter in ipairs(modeset_list) do 
 		iter.saved_crtc = drmModeGetCrtc(fd, iter.crtc);
 		ret = drmModeSetCrtc(fd, iter.crtc, iter.fb, 0, 0,
 				     &iter.conn, 1, &iter.mode);
 		if (ret)
 			fprintf(stderr, "cannot set CRTC for connector %u (%d): %m\n",
 				iter.conn, errno);
-	}
+	end
 
 	-- draw some colors for 5seconds
 	modeset_draw();
@@ -449,18 +394,6 @@ local function main(argc, argv)
 	-- cleanup everything
 	modeset_cleanup(fd);
 
-	ret = 0;
-
-out_close:
-	close(fd);
-out_return:
-	if (ret) {
-		errno = -ret;
-		fprintf(stderr, "modeset failed with error %d: %m\n", errno);
-	} else {
-		fprintf(stderr, "exiting\n");
-	}
-	return ret;
 --]]
 end
 

@@ -63,13 +63,13 @@ Connection: %d
 	end;
 }
 
-function DRMCardConnector.init(self, conn)
+function DRMCardConnector.init(self, fd, conn)
 	local obj = {
 		Id = conn.connector_id;
 		EncoderId = conn.encoder_id;
 		Type = conn.connector_type;
 		TypeId = conn.connector_type_id;
-		Connection = tonumber(conn.connection);
+		Connection = tonumber(conn.connection);		-- state of the connection; CONNECTED, DISCONNECTED, UNKNOWN
 		MMWidth = conn.mmWidth;
 		MMHeight = conn.mmHeight;
 
@@ -93,6 +93,9 @@ function DRMCardConnector.init(self, conn)
 		idx = idx + 1;
 	end
 
+	-- Get the current encoder
+	obj.Encoder = DRMEncoder(fd, conn.encoder_id);
+	
 	-- get the encoder ids
 	idx = 0;
 	while (idx < conn.count_encoders) do
@@ -112,7 +115,7 @@ function DRMCardConnector.new(self, fd, connector_id)
 	end
 	ffi.gc(conn, xf86drmMode.drmModeFreeConnector);
 
-	return self:init(conn);
+	return self:init(fd, conn);
 end
 
 function DRMCardConnector.isConnected(self)

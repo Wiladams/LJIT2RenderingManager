@@ -370,14 +370,20 @@ local exports = {
     -- library functions
     drmCheckModesettingSupported = Lib_drm.drmCheckModesettingSupported;
     drmModeGetConnector = Lib_drm.drmModeGetConnector;
+    drmModeGetEncoder = Lib_drm.drmModeGetEncoder;
     drmModeGetResources = Lib_drm.drmModeGetResources;
     drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
+    drmModeFreeEncoder = Lib_drm.drmModeFreeEncoder;
     drmModeFreeResources = Lib_drm.drmModeFreeResources;
 }
 
 
 setmetatable(exports, {
   __call = function(self, ...)
+    for k,v in pairs(self) do
+      _G[k] = v;
+    end
+--[[
     for k,v in pairs(self.Constants) do
       _G[k] = v;
     end
@@ -389,7 +395,7 @@ setmetatable(exports, {
     for k,v in pairs(self.Functions) do
       _G[k] = v;
     end
-
+--]]
     return self;
   end,
 })

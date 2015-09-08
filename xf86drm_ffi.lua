@@ -112,8 +112,9 @@ typedef struct _drmStats {
 	int           verbose;       /**< Suggest only in verbose output */
     } data[15];
 } drmStatsT;
+]]
 
-
+ffi.cdef[[
 				/* All of these enums *MUST* match with the
                                    kernel implementation -- so do *NOT*
                                    change them!  (The drmlib implementation
@@ -192,7 +193,9 @@ typedef enum {
 				     never swapped. */
     DRM_CONTEXT_2DONLY    = 0x02  /**< This context is for 2D rendering only. */
 } drm_context_tFlags, *drm_context_tFlagsPtr;
+]]
 
+ffi.cdef[[
 typedef struct _drmBufDesc {
     int              count;	  /**< Number of buffers of this size */
     int              size;	  /**< Size in bytes */

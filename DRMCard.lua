@@ -233,6 +233,44 @@ function DRMCard.prepare(self)
 	return true;
 end
 
+-- iterate through the various connectors, returning
+-- the ones that are actually connected.
+function DRMCard.connections(self)
+	local function iter(param, idx)
+		local connection = nil;
+
+		if idx > #self.Connectors then 
+			return connection;
+		end
+
+		while idx <= #self.Connectors do
+			if self.Connectors[idx].Connection == ffi.C.DRM_MODE_CONNECTED and
+				self.Connectors[idx].ModeCound > 0 then
+				break;
+			end
+			idx = idx + 1;
+		end
+
+		if idx > #self.Connectors then
+			return nil;
+		end
+
+		return idx+1, self.Connectors[idx];
+	end
+
+	return iter, self, 1
+end
+
+function DRMCard.getEncoder(self, id)
+	local enc = drmModeGetEncoder(self.Handle, id);
+	
+	if enc == nil then return false, "could not create encoder" end
+	
+	ffi.gc(enc, drmModeFreeEncoder);
+
+	return DRMEncoder:init(enc);
+end
+
 function DRMCard.print(self)
 	print("Supports Mode Setting: ", self:supportsModeSetting())
 	for _, connector in ipairs(self.Connectors) do
