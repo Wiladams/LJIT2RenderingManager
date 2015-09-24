@@ -13,6 +13,10 @@ ffi.cdef[[
 	void *memset (void *__s, int __c, size_t __n) ;
 	
 	void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+	int munmap (void *, size_t);
+
+	int mprotect (void *, size_t, int);
+	int msync (void *, size_t, int);
 
 	int rand (void);
 	void srand (unsigned int __seed);
@@ -109,6 +113,18 @@ local exports = {
 	O_RDWR		= octal(00000002);
 	O_CLOEXEC	= octal(02000000);	-- set close_on_exec
 
+	-- mmap
+	MAP_FAILED  = ffi.cast("void *", -1);
+
+	PROT_NONE   =   0;
+	PROT_READ   =   1;
+	PROT_WRITE  =   2;
+	PROT_EXEC   =   4;
+
+	MAP_SHARED  =   0x01;
+	MAP_PRIVATE =   0x02;
+	MAP_FIXED   =   0x10;
+
 
 	fprintf = fprintf;
 	printf = printf;
@@ -118,6 +134,8 @@ local exports = {
 	-- library functions
 	memcpy = ffi.C.memcpy;
 	memset = ffi.C.memset;
+	mmap = ffi.C.mmap;
+	munmap = ffi.C.munmap;
 
 	open = ffi.C.open;
 	close = ffi.C.close;

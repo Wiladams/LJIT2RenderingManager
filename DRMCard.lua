@@ -5,11 +5,7 @@ local band = bit.band
 
 local xf86drm = require("xf86drm_ffi")()
 local xf86drmMode = require("xf86drmMode_ffi")
-
-
 local utils = require("test_utils")()
-
-
 local DRMCardConnector = require("DRMCardConnector")
 
 
@@ -207,28 +203,6 @@ function DRMCard.prepare(self)
 
 		count = count - 1;
 	end
-
---[[
-	-- iterate all connectors 
-	for (i = 0; i < res.count_connectors; ++i) {
-		-- create a device structure */
-		dev = malloc(sizeof(*dev));
-		memset(dev, 0, sizeof(*dev));
-		dev.conn = conn.connector_id;
-
-		-- call helper function to prepare this connector */
-		ret = modeset_setup_dev(fd, res, conn, dev);
-		if (ret) then
-			if (ret != -ENOENT) {
-				errno = -ret;
-				fprintf(stderr, "cannot setup device for connector %u:%u (%d): %m\n",
-					i, res.connectors[i], errno);
-			}
-			free(dev);
-			continue;
-		end
-	}
---]]
 
 	return true;
 end

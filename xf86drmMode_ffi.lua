@@ -3,7 +3,7 @@ local bit = require("bit")
 local bor = bit.bor
 local band = bit.band
 
-local drm = require("drm_h")
+local drm = require("drm_ffi")
 local drm_mode = drm.drm_mode();
 
 

@@ -18,7 +18,12 @@ local DRMCardMode_mt = {
 
 
 function DRMCardMode.init(self, m)
+	local minfo = ffi.new("drmModeModeInfo");
+	ffi.copy(minfo, m, ffi.sizeof("drmModeModeInfo"));
+
 	local obj = {
+		ModeInfo = minfo;
+
 		Clock = m.clock;
 		
 		Width = m.hdisplay;

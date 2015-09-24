@@ -177,7 +177,9 @@ struct drm_mode_get_blob {
 	uint32_t length;
 	uint64_t data;
 };
+]]
 
+ffi.cdef[[
 struct drm_mode_fb_cmd {
 	uint32_t fb_id;
 	uint32_t width, height;
@@ -222,7 +224,6 @@ struct drm_mode_mode_cmd {
 
 
 ffi.cdef[[
-
 struct drm_mode_cursor {
 	uint32_t flags;
 	uint32_t crtc_id;
