@@ -7,8 +7,7 @@ local bnot = bit.bnot;
 
 local libc = require("libc")
 
---#include <linux/types.h>
---#include <asm/ioctl.h>
+
 
 ffi.cdef[[
 typedef unsigned int drm_handle_t;
