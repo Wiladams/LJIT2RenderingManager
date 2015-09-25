@@ -1,8 +1,16 @@
 
---
--- Origin
--- https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
---
+--[[
+	Origin
+	This code was originally inspired by the very simple mode setting example here:
+		https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
+
+	It was substantially rewritten and simplified further to match the object model
+	available in LJIT2RenderingManager.
+
+	This test will attempt to draw something on the current framebuffer of the default 
+	card.  It does not change modes, or create a new frame buffer.  It just draws on whatever
+	is already setup.
+]]
 
 package.path = package.path..";../?.lua"
 
@@ -79,12 +87,7 @@ local function drm_find_dev(card)
 	return dev;
 end
 
---[[
-extern int drmModeAddFB(int fd, uint32_t width, uint32_t height, uint8_t depth,
-      uint8_t bpp, uint32_t pitch, uint32_t bo_handle,
-      uint32_t *buf_id);
 
---]]
 local function setup_fb(card, dev)
 
 	local fd = card.Handle;
@@ -101,6 +104,8 @@ local function setup_fb(card, dev)
 		fatal("drmIoctl DRM_IOCTL_MODE_CREATE_DUMB failed");
 	end
 
+print("setup_fb: 1.0")
+
 	dev.pitch = creq.pitch;
 	dev.size = creq.size;
 	dev.handle = creq.handle;
@@ -112,20 +117,27 @@ local function setup_fb(card, dev)
 	end
 	dev.fb_id = buf_idp[0];
 
+print("setup_fb: 2.0")
+
 	mreq.handle = dev.handle;
 
 	if (drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, mreq) ~= 0) then
 		fatal("drmIoctl DRM_IOCTL_MODE_MAP_DUMB failed");
 	end
 
+print("setup_fb: 3.0")
+
 	dev.buf = ffi.cast("uint32_t *", emmap(nil, dev.size, bor(PROT_READ, PROT_WRITE), MAP_SHARED, fd, mreq.offset));
 
 	dev.saved_crtc = xf86drmMode.drmModeGetCrtc(fd, dev.crtc_id); -- must store crtc data
-	
+
+print("setup_fb: 4.0")
+
 	--if (xf86drmMode.drmModeSetCrtc(fd, dev.crtc_id, dev.fb_id, 0, 0, &dev->conn_id, 1, &dev->mode) ~= 0) then
 	if (xf86drmMode.drmModeSetCrtc(fd, dev.crtc_id, dev.fb_id, 0, 0, ffi.cast("unsigned int *",dev.conn_id), 1, dev.mode.ModeInfo) ~= 0) then
 		fatal("drmModeSetCrtc() failed");
 	end
+print("setup_fb: 5.0")
 end
 
 local function drm_destroy(card, dev_head)
@@ -156,25 +168,7 @@ local function drm_destroy(card, dev_head)
 --]]
 end
 
-local function main()
-
---	int fd;
---	int i, j;
---	uint8_t color;
---	struct drm_dev_t *dev_head, *dev;
-
-
-	local card, err = DRMCard();
-
-	if not card or not card:hasDumbBuffer() then 
-		print("Error creating card: ", err)
-		return false;
-	end
-
-	local dev = drm_find_dev(card);
-
-	setup_fb(card, dev);
-
+local function draw(fbuff)
 	-- draw something */
 	for i = 0, dev.height-1 do
 		for j = 0, dev.width-1 do
@@ -182,10 +176,27 @@ local function main()
 			dev.buf[i * dev.width + j] = band(0xFFFFFF, bor(lshift(0x00, 16), lshift(color, 8), color));
 		end
 	end
+end
 
+local function main()
+
+	-- First, get a hold of a card
+	local card, err = DRMCard();
+
+	if not card or not card:hasDumbBuffer() then 
+		print("Error creating card: ", err)
+		return false;
+	end
+
+	-- Get a handle on the frame buffer
+	local dev = drm_find_dev(card);
+
+	setup_fb(card, dev);
+
+	draw(card)
 	--sleep(3);
 
-	drm_destroy(card, dev);
+	--drm_destroy(card, dev);
 
 	return true;
 end

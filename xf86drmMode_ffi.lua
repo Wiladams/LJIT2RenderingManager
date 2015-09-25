@@ -370,13 +370,19 @@ local exports = {
     -- library functions
     drmCheckModesettingSupported = Lib_drm.drmCheckModesettingSupported;
     drmModeAddFB = Lib_drm.drmModeAddFB;
+    
     drmModeGetConnector = Lib_drm.drmModeGetConnector;
     drmModeGetCrtc = Lib_drm.drmModeGetCrtc;
     drmModeGetEncoder = Lib_drm.drmModeGetEncoder;
+    drmModeGetFB = Lib_drm.drmModeGetFB;
     drmModeGetResources = Lib_drm.drmModeGetResources;
+    
     drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
+    drmModeFreeCrtc = Lib_drm.drmModeFreeCrtc;
     drmModeFreeEncoder = Lib_drm.drmModeFreeEncoder;
+    drmModeFreeFB = Lib_drm.drmModeFreeFB;
     drmModeFreeResources = Lib_drm.drmModeFreeResources;
+
     drmModeSetCrtc = Lib_drm.drmModeSetCrtc;
 }
 

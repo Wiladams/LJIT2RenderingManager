@@ -1,6 +1,5 @@
 local ffi = require("ffi")
 
-
 local DRMCardMode = {}
 setmetatable(DRMCardMode, {
 	__call = function(self, ...)
@@ -55,9 +54,9 @@ end
 
 function DRMCardMode.toString(self)
 	return string.format([[
-Name: %s
-Clock: %d
-Size: %dx%d
+   Name: %s
+  Clock: %d
+   Size: %dx%d
 Horizontal
   Start: %d  End: %d  Total: %d  Skew: %d
 Vertical
@@ -65,8 +64,8 @@ Vertical
 
 Refresh: %d
 
-Flags: %d
-Type: %d
+  Flags: %d
+   Type: %d
 ]],
 	self.Name,
 	self.Clock,

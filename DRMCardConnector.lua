@@ -59,12 +59,14 @@ Connection: %d
 	self.MMHeight,
 	self.ModeCount,
 	self.PropsCount,
-	self.EncoderCount)
+	#self.EncoderIds)
 	end;
 }
 
 function DRMCardConnector.init(self, fd, conn)
 	local obj = {
+		CardFd = fd;
+
 		Id = conn.connector_id;
 		EncoderId = conn.encoder_id;
 		Type = conn.connector_type;
@@ -79,7 +81,7 @@ function DRMCardConnector.init(self, fd, conn)
 
 		ModeCount = conn.count_modes;
 		PropsCount = conn.count_props;
-		EncoderCount = conn.count_encoders;
+--		EncoderCount = conn.count_encoders;
 	}
 	setmetatable(obj, DRMCardConnector_mt);
 
@@ -122,11 +124,38 @@ function DRMCardConnector.isConnected(self)
 	return self.Connection == ffi.C.DRM_MODE_CONNECTED;
 end
 
+-- set and get current mode
+-- if called without a value, it is a getter
+-- if called with a value, it is a setter
+function DRMCardConnector.mode(self, value)
+
+end
+
+-- iterator over the encoders
+function DRMCardConnector.encoders(self)
+	local function encoder_gen(param, idx)
+		if idx > #param.EncoderIds then
+			return nil;
+		end
+
+		return idx + 1, DRMEncoder(param.CardFd, param.EncoderIds[idx])
+	end
+
+	return encoder_gen, self, 1;
+end
+
 function DRMCardConnector.print(self)
 	print(tostring(self))
+	
+	-- Modes
 	for _, mode in ipairs(self.Modes) do
 		print("---- mode ----")
 		print(mode)
+	end
+
+	-- Encoders
+	for _, encoder in self:encoders() do
+		encoder:print()
 	end
 end
 
