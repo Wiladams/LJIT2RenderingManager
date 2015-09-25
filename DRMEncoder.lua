@@ -1,4 +1,6 @@
 --DRMEncoder.lua
+local ffi = require("ffi")
+local xf86drmMode_ffi = require("xf86drmMode_ffi")
 
 local DRMEncoder = {}
 setmetatable(DRMEncoder, {
@@ -38,11 +40,13 @@ function DRMEncoder.init(self, handle)
 end
 
 function DRMEncoder.new(self, fd, id)
-	local enc = drmModeGetEncoder(fd, id);
+	local enc = xf86drmMode_ffi.drmModeGetEncoder(fd, id);
 	
 	if enc == nil then return false, "could not create encoder" end
 	
-	ffi.gc(enc, drmModeFreeEncoder);
+	ffi.gc(enc, xf86drmMode_ffi.drmModeFreeEncoder);
 
 	return DRMEncoder:init(enc);
 end
+
+return DRMEncoder;

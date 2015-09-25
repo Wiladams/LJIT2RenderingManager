@@ -43,7 +43,7 @@ end
 
 local function emmap(addr, len, prot, flag, fd, offset)
 
-	local fp = ffi.cast("uint32_t *", mmap(0, len, prot, flag, fd, offset));
+	local fp = ffi.cast("uint32_t *", mmap(addr, len, prot, flag, fd, offset));
 
 	if (fp == MAP_FAILED) then
 		error("mmap");
@@ -68,7 +68,7 @@ local function drm_find_dev(card)
 
 	local dev = {
 		conn_id = conn.Id;
-		enc_id = conn.EncoderId
+		enc_id = conn.EncoderId;
 		mode = firstMode;
 		width = firstMode.Width;
 		height = firstMode.Height;
@@ -85,7 +85,7 @@ extern int drmModeAddFB(int fd, uint32_t width, uint32_t height, uint8_t depth,
       uint32_t *buf_id);
 
 --]]
-local function drm_setup_fb(card, dev)
+local function setup_fb(card, dev)
 
 	local fd = card.Handle;
 	local creq = ffi.new("struct drm_mode_create_dumb");
@@ -112,20 +112,21 @@ local function drm_setup_fb(card, dev)
 	end
 	dev.fb_id = buf_idp[0];
 
-	--memset(&mreq, 0, sizeof(struct drm_mode_map_dumb));
 	mreq.handle = dev.handle;
 
 	if (drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, mreq) ~= 0) then
 		fatal("drmIoctl DRM_IOCTL_MODE_MAP_DUMB failed");
 	end
 
-	dev.buf = ffi.cast("uint32_t *", emmap(0, dev.size, bor(PROT_READ, PROT_WRITE), MAP_SHARED, fd, mreq.offset));
+	dev.buf = ffi.cast("uint32_t *", emmap(nil, dev.size, bor(PROT_READ, PROT_WRITE), MAP_SHARED, fd, mreq.offset));
 
-	dev.saved_crtc = drmModeGetCrtc(fd, dev.crtc_id); -- must store crtc data
-	if (drmModeSetCrtc(fd, dev.crtc_id, dev.fb_id, 0, 0, &dev->conn_id, 1, &dev->mode) ~= 0) then
+	dev.saved_crtc = xf86drmMode.drmModeGetCrtc(fd, dev.crtc_id); -- must store crtc data
+	
+	--if (xf86drmMode.drmModeSetCrtc(fd, dev.crtc_id, dev.fb_id, 0, 0, &dev->conn_id, 1, &dev->mode) ~= 0) then
+	if (xf86drmMode.drmModeSetCrtc(fd, dev.crtc_id, dev.fb_id, 0, 0, ffi.cast("unsigned int *",dev.conn_id), 1, dev.mode.ModeInfo) ~= 0) then
 		fatal("drmModeSetCrtc() failed");
 	end
-}
+end
 
 local function drm_destroy(card, dev_head)
 --[[
@@ -157,10 +158,10 @@ end
 
 local function main()
 
-	int fd;
-	int i, j;
-	uint8_t color;
-	struct drm_dev_t *dev_head, *dev;
+--	int fd;
+--	int i, j;
+--	uint8_t color;
+--	struct drm_dev_t *dev_head, *dev;
 
 
 	local card, err = DRMCard();
@@ -172,19 +173,21 @@ local function main()
 
 	local dev = drm_find_dev(card);
 
-	drm_setup_fb(card, dev);
+	setup_fb(card, dev);
 
 	-- draw something */
 	for i = 0, dev.height-1 do
 		for j = 0, dev.width-1 do
-			color = ((i * j) / (dev.height * dev.width)) * 0xFF;
+			local color = ((i * j) / (dev.height * dev.width)) * 0xFF;
 			dev.buf[i * dev.width + j] = band(0xFFFFFF, bor(lshift(0x00, 16), lshift(color, 8), color));
 		end
 	end
 
-	sleep(3);
+	--sleep(3);
 
 	drm_destroy(card, dev);
 
 	return true;
 end
+
+main()

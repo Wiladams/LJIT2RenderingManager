@@ -14,7 +14,6 @@ typedef unsigned int drm_handle_t;
 ]]
 
 
-
 ffi.cdef[[
 typedef unsigned int drm_context_t;
 typedef unsigned int drm_drawable_t;
@@ -513,7 +512,7 @@ struct drm_prime_handle {
 };
 ]]
 
-local drm_mode = require("drm_mode")
+require("drm_mode")
 
 
 

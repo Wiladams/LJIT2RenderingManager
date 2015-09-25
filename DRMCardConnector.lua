@@ -2,7 +2,7 @@ local ffi = require("ffi")
 local xf86drmMode = require("xf86drmMode_ffi")
 
 local DRMCardMode = require("DRMCardMode")
-
+local DRMEncoder = require("DRMEncoder")
 
 
 --[[

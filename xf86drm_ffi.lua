@@ -4,8 +4,10 @@ local ffi = require("ffi")
 local bit = require("bit")
 local bor = bit.bor
 
-local drm_ffi = require("drm_ffi")
+local drm = require("drm")
+local Lib_drm = drm.Lib_drm;
 local stat = require("stat")()
+
 
 ffi.cdef[[
 typedef uint32_t gid_t;
@@ -558,7 +560,6 @@ extern char *drmGetPrimaryDeviceNameFromFd(int fd);
 extern char *drmGetRenderDeviceNameFromFd(int fd);
 ]]
 
-local Lib_drm = ffi.load("drm")
 
 local exports = {
 	Lib_drm = Lib_drm;
@@ -603,6 +604,7 @@ local exports = {
 	drmGetLibVersion = Lib_drm.drmGetLibVersion;
 	drmGetStats = Lib_drm.drmGetStats;
 	drmGetVersion = Lib_drm.drmGetVersion;
+  drmIoctl = Lib_drm.drmIoctl;
 	drmOpen = Lib_drm.drmOpen;
 }
 
@@ -613,7 +615,7 @@ setmetatable(exports, {
 			tbl[k] = v;
 		end
 
-		drm_ffi(tbl);
+		drm(tbl);
 
 		return self;
 	end,

@@ -3,8 +3,8 @@ local bit = require("bit")
 local bor = bit.bor
 local band = bit.band
 
-local drm = require("drm_ffi")
-local drm_mode = drm.drm_mode();
+local drm = require("drm")
+--local drm_mode = drm.drm_mode();
 
 
 ffi.cdef[[
@@ -369,19 +369,24 @@ local exports = {
 
     -- library functions
     drmCheckModesettingSupported = Lib_drm.drmCheckModesettingSupported;
+    drmModeAddFB = Lib_drm.drmModeAddFB;
     drmModeGetConnector = Lib_drm.drmModeGetConnector;
+    drmModeGetCrtc = Lib_drm.drmModeGetCrtc;
     drmModeGetEncoder = Lib_drm.drmModeGetEncoder;
     drmModeGetResources = Lib_drm.drmModeGetResources;
     drmModeFreeConnector = Lib_drm.drmModeFreeConnector;
     drmModeFreeEncoder = Lib_drm.drmModeFreeEncoder;
     drmModeFreeResources = Lib_drm.drmModeFreeResources;
+    drmModeSetCrtc = Lib_drm.drmModeSetCrtc;
 }
 
 
 setmetatable(exports, {
-  __call = function(self, ...)
+  __call = function(self, tbl)
+    tbl = tbl or _G;
+
     for k,v in pairs(self) do
-      _G[k] = v;
+      tbl[k] = v;
     end
 --[[
     for k,v in pairs(self.Constants) do

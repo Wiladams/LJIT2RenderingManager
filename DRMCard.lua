@@ -219,7 +219,7 @@ function DRMCard.connections(self)
 
 		while idx <= #self.Connectors do
 			if self.Connectors[idx].Connection == ffi.C.DRM_MODE_CONNECTED and
-				self.Connectors[idx].ModeCound > 0 then
+				self.Connectors[idx].ModeCount > 0 then
 				break;
 			end
 			idx = idx + 1;
