@@ -85,7 +85,9 @@ end
 function DRMEncoder.print(self)
 	print("---- DRMEncoder ----")
 	print(tostring(self));
-	self.CrtController:print();
+	if self.CrtController then
+		self.CrtController:print();
+	end
 end
 
 -- if crtc_id specified, it is a setter

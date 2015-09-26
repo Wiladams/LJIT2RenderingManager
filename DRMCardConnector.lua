@@ -4,6 +4,26 @@ local xf86drmMode = require("xf86drmMode_ffi")
 local DRMCardMode = require("DRMCardMode")
 local DRMEncoder = require("DRMEncoder")
 
+-- list of types of connectors
+local ConnectorType = {
+	 [0] = "Unknown";
+	 [1] = "VGA";
+	 [2] = "DVII";
+	 [3] = "DVID";
+	 [4] = "DVIA";
+	 [5] = "Composite";
+	 [6] = "SVIDEO";
+	 [7] = "LVDS";
+	 [8] = "Component";
+	 [9] = "9PinDIN";
+	[10] = "DisplayPort";
+	[11] = "HDMIA";
+	[12] = "HDMIB";
+	[13] = "TV";
+	[14] = "eDP";
+	[15] = "VIRTUAL";
+	[16] = "DSI";
+}
 
 --[[
 typedef struct _drmModeConnector {
@@ -40,7 +60,7 @@ local DRMCardConnector_mt = {
 		return string.format([[
         ID: %d
 Encoder ID: %d
-      Type: %d
+      Type: %s
    Type ID: %d
 Connection: %d
 
@@ -52,7 +72,7 @@ Connection: %d
 ]],
 	self.Id,
 	self.EncoderId,
-	self.Type,
+	ConnectorType[self.Type],
 	self.TypeId,
 	self.Connection,
 	self.MMWidth,
@@ -69,7 +89,7 @@ function DRMCardConnector.init(self, fd, conn)
 
 		Id = conn.connector_id;
 		EncoderId = conn.encoder_id;
-		Type = conn.connector_type;
+		Type = tonumber(conn.connector_type);
 		TypeId = conn.connector_type_id;
 		Connection = tonumber(conn.connection);		-- state of the connection; CONNECTED, DISCONNECTED, UNKNOWN
 		MMWidth = conn.mmWidth;

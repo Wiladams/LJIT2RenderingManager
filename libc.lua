@@ -72,6 +72,8 @@ ffi.cdef[[
 	int usleep (__useconds_t __useconds);
 	time_t time(time_t *t);
 
+	unsigned int sleep(unsigned int);
+
 	int open (const char *__file, int __oflag, ...);
 	int close(int fd);
 
@@ -206,6 +208,7 @@ local exports = {
 	rand = ffi.C.rand;
 	srand = ffi.C.srand;
 
+	sleep = ffi.C.sleep;
 }
 
 setmetatable(exports, {

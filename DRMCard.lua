@@ -5,7 +5,7 @@ local band = bit.band
 
 local xf86drm = require("xf86drm_ffi")()
 local xf86drmMode = require("xf86drmMode_ffi")
-local utils = require("test_utils")()
+local libc = require("libc")()
 local DRMCardConnector = require("DRMCardConnector")
 
 
@@ -233,6 +233,18 @@ function DRMCard.connections(self)
 	end
 
 	return iter, self, 1
+end
+
+function DRMCard.getDefaultConnection(self)
+	for _, connection in self:connections() do
+		return connection;
+	end
+
+	return nil;
+end
+
+function DRMCard.getDefaultFrameBuffer(self)
+	return self:getDefaultConnection().Encoder.CrtController.FrameBuffer;
 end
 
 function DRMCard.getEncoder(self, id)
