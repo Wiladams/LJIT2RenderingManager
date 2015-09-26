@@ -8,8 +8,15 @@ local function h_line(fb, x,y,count,color)
 	end
 end
 
+local function rect(fb, x1,y1, width, height, color)
+	for row=y1, y1+height-1 do
+		h_line(fb, x1, row, width, color);
+	end
+end
+
 local exports = {
 	h_line = h_line;
+	rect = rect;
 }
 
 setmetatable(exports, {

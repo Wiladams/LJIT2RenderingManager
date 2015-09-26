@@ -18,16 +18,19 @@ local ffi = require("ffi")
 local bit = require("bit")
 local bor, band, lshift, rshift = bit.bor, bit.band, bit.lshift, bit.rshift
 
---local xf86drmMode = require("xf86drmMode_ffi")
 local libc = require("libc")
 local utils = require("utils")
+local ppm = require("ppm")
 
 local DRMCard = require("DRMCard")
 
+local function RGB(r,g,b)
+	return band(0xFFFFFF, bor(lshift(r, 16), lshift(g, 8), b))
+end
 
 local function drawLines(fb)
-	local shade = 127
-	local color = band(0xFFFFFF, bor(lshift(0x00, 16), lshift(shade, 8), shade))
+	local color = RGB(23, 250, 127)
+
 	for i = 1, 400 do
 		utils.h_line(fb, 10+i, 10+i, i, color)
 	end
@@ -40,11 +43,21 @@ fb.DataPtr = fb:getDataPtr();
 
 print("fb: [bpp, depth, pitch]: ", fb.BitsPerPixel, fb.Depth, fb.Pitch)
 
--- Draw some stuff on our new framebuffer
-drawLines(fb)
+local function drawRectangles(fb)
+	utils.rect(fb, 200, 200, 320, 240, RGB(230, 34, 127))
+end
 
+local function draw()
 
+	drawLines(fb)
+
+	drawRectangles(fb);
+end
+
+draw();
+
+ppm.write_PPM_binary("draw_crtc_lines.ppm", fb.DataPtr, fb.Width, fb.Height, fb.Pitch)
 -- sleep for a little bit of time
 -- just so we can see what's there
-libc.sleep(3);
+-- libc.sleep(3);
 

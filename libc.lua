@@ -40,9 +40,7 @@ ffi.cdef[[
 int ioctl (int, int, ...);
 ]]
 
-local function octal(value)
-	return tonumber(value, 8);
-end
+
 
 
 
@@ -76,6 +74,16 @@ ffi.cdef[[
 
 	int open (const char *__file, int __oflag, ...);
 	int close(int fd);
+
+	// Files
+	typedef struct _IO_FILE FILE;
+
+	FILE *fopen(const char *__restrict, const char *__restrict);
+	int fclose(FILE *);
+
+	int fprintf(FILE *__restrict, const char *__restrict, ...);
+	size_t fread(void *__restrict, size_t, size_t, FILE *__restrict);
+	size_t fwrite(const void *__restrict, size_t, size_t, FILE *__restrict);
 
 ]]
 
@@ -141,15 +149,20 @@ local errnos = {
 	
 }
 
-local function strerror(num)
-	num = num or ffi.errno();
-	for k,v in pairs(errnos) do
-		if v == num then
-			return k;
+-- reverse dictionary lookup
+local function getNameOfValue(value, tbl)
+	for k,v in pairs(tbl) do
+		if v == value 
+			then return k
 		end
 	end
 
-	return string.format("UNKNOWN ERROR: %d", num);
+	return string.format("UNKNOWN VALUE: %d", value);
+end 
+
+local function strerror(num)
+	num = num or ffi.errno();
+	return getNameOfValue(errnos, num)
 end
 
 local function octal(val)
@@ -202,9 +215,16 @@ local exports = {
 	mmap = ffi.C.mmap;
 	munmap = ffi.C.munmap;
 
+	-- File manipulation
+	fopen = ffi.C.fopen;
+	fclose = ffi.C.fclose;
+	fprintf = ffi.C.fprintf;
+	fwrite = ffi.C.fwrite;
+
 	open = ffi.C.open;
 	close = ffi.C.close;
 
+	-- Random numbers
 	rand = ffi.C.rand;
 	srand = ffi.C.srand;
 
