@@ -24,9 +24,9 @@ local function  write_PPM_binary(filename, bits, width, height, stride)
 
 	for row = 0, height-1 do
 		for col = 0, width-1 do
-			rgb[0] = pixelPtr[(col*4)];
+			rgb[2] = pixelPtr[(col*4)];
 			rgb[1] = pixelPtr[(col*4)+1];
-			rgb[2] = pixelPtr[(col*4)+2];
+			rgb[0] = pixelPtr[(col*4)+2];
 			libc.fwrite(rgb, 3, 1, fp);
 			--fwrite(&pixelPtr[col], 3, 1, fp);
 		end
